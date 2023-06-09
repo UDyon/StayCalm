@@ -1,0 +1,496 @@
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.LocalDate;
+import java.util.*;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+
+@SuppressWarnings("serial")
+
+public class StayCalm {
+	public static void main(String[] args) {
+		new LOGIN();
+	}
+}
+
+class LOGIN extends JFrame implements ActionListener { // 로그인 프레임
+	private JButton login = new JButton("로그인");
+	private JButton regist = new JButton("회원가입");
+	private JTextField id = new JTextField();
+	private JPasswordField pw = new JPasswordField();
+
+	File memberfile = new File("memberfile.txt");
+
+	public LOGIN() {
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setTitle("StayCalm");
+		setLocation(400, 0);
+		setSize(500, 650);
+		setVisible(true);
+
+		Container c = getContentPane();
+		c.setLayout(null);
+		c.setBackground(Color.WHITE);
+
+//		ImageIcon i = new ImageIcon("logo.jpg");
+//		JLabel logo = new JLabel(i);
+//		logo.setSize(300, 300);
+//		logo.setLocation(130,0);
+//		c.add(logo);
+
+		JLabel title = new JLabel("Stay Calm");
+		title.setSize(1000, 1000);
+		title.setLocation(100, -400);
+		title.setFont(new Font("맑은 고딕", Font.BOLD, 60));
+		title.setForeground(Color.BLACK);
+		c.add(title);
+
+		id.setSize(190, 35);
+		id.setLocation(160, 235);
+		c.add(id);
+		JLabel idtext = new JLabel("ID");
+		idtext.setSize(200, 35);
+		idtext.setLocation(120, 235);
+		idtext.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+		idtext.setForeground(Color.BLACK);
+		c.add(idtext);
+
+		pw.setSize(190, 35);
+		pw.setLocation(160, 300);
+		c.add(pw);
+		JLabel pwtext = new JLabel("PW");
+		pwtext.setSize(200, 35);
+		pwtext.setLocation(110, 300);
+		pwtext.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+		pwtext.setForeground(Color.BLACK);
+		c.add(pwtext);
+
+		login.setSize(150, 40);
+		login.setLocation(165, 450);
+		login.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+		login.setBackground(Color.WHITE);
+		login.setForeground(Color.BLACK);
+		login.addActionListener(this);
+		c.add(login);
+
+		regist.setSize(150, 40);
+		regist.setLocation(165, 510);
+		regist.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+		regist.setBackground(Color.WHITE);
+		regist.addActionListener(this);
+		c.add(regist);
+	}
+
+	public void actionPerformed(ActionEvent e) {
+		if (e.getSource() == login) // 로그인 버튼
+		{
+			String idtemp = id.getText();
+			String pwtemp = pw.getText();
+			if (idtemp.equals("manager") && pwtemp.equals("manager")) {
+//				new MANAGERMAIN();
+				dispose();
+				return;
+			}
+			try {
+				pwtemp = hashing(pwtemp);
+			} catch (NoSuchAlgorithmException e2) {
+				e2.printStackTrace();
+			}
+			try {
+				if (!memberfile.exists())
+					try {
+						memberfile.createNewFile();
+					} catch (IOException e2) {
+						e2.printStackTrace();
+					}
+				Scanner s = new Scanner(memberfile);
+				while (s.hasNextLine()) {
+					StringTokenizer st = new StringTokenizer(s.nextLine(), " ");
+					String idtoken = st.nextToken();
+					String pwtoken = st.nextToken();
+					if (idtoken.equals(idtemp) && pwtoken.equals(pwtemp)) {
+						try {
+							new USERMAIN(idtemp);
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+						dispose();
+						return;
+					}
+				}
+				JOptionPane.showMessageDialog(null, "로그인에 실패하였습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+			} catch (FileNotFoundException e1) {
+				e1.printStackTrace();
+			}
+
+		} else if (e.getSource() == regist) // 회원가입 버튼
+		{
+			new REGIST();
+		}
+	}
+
+	public static String hashing(String password) throws NoSuchAlgorithmException // 비밀번호 해싱 (SHA512)
+	{
+		MessageDigest md = MessageDigest.getInstance("SHA-512");
+		md.update(password.getBytes());
+		String hex = String.format("%0128x", new BigInteger(1, md.digest()));
+		return hex;
+	}
+}
+
+class REGIST extends JFrame implements ActionListener { // 회원가입 프레임 //아이디 중복체크
+
+	private JTextField ID = new JTextField();
+	private JTextField PASSWORD = new JTextField();
+	private JTextField PWcheck = new JTextField();
+	private JTextField name = new JTextField();
+	private JTextField pnumber = new JTextField();
+	private JButton regist = new JButton("가입하기");
+
+	public REGIST() {
+		setTitle("StayCalm");
+		setLocation(600, 150);
+		setSize(400, 450);
+		setVisible(true);
+
+		Container c = getContentPane();
+		c.setLayout(null);
+		c.setBackground(Color.WHITE);
+
+		JLabel jointext = new JLabel("회원가입");
+		jointext.setSize(1000, 1000);
+		jointext.setLocation(155, -480);
+		jointext.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+		jointext.setForeground(Color.BLACK);
+		c.add(jointext);
+
+		JLabel idtext = new JLabel("ID");
+		idtext.setSize(200, 40);
+		idtext.setLocation(83, 53);
+		idtext.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+		idtext.setForeground(Color.BLACK);
+		c.add(idtext);
+		ID.setSize(200, 30);
+		ID.setLocation(103, 60);
+		c.add(ID);
+
+		JLabel pwtext = new JLabel("PW");
+		pwtext.setSize(200, 40);
+		pwtext.setLocation(77, 113);
+		pwtext.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+		pwtext.setForeground(Color.BLACK);
+		c.add(pwtext);
+		PASSWORD.setSize(200, 30);
+		PASSWORD.setLocation(103, 120);
+		c.add(PASSWORD);
+
+		JLabel pwctext = new JLabel("PW 재확인");
+		pwctext.setSize(200, 40);
+		pwctext.setLocation(32, 153);
+		pwctext.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+		pwctext.setForeground(Color.BLACK);
+		c.add(pwctext);
+		PWcheck.setSize(200, 30);
+		PWcheck.setLocation(103, 160);
+		c.add(PWcheck);
+
+		JLabel nametext = new JLabel("이름");
+		nametext.setSize(200, 40);
+		nametext.setLocation(72, 213);
+		nametext.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+		nametext.setForeground(Color.BLACK);
+		c.add(nametext);
+		name.setSize(200, 30);
+		name.setLocation(103, 220);
+		c.add(name);
+
+		JLabel pntext = new JLabel("전화번호");
+		pntext.setSize(200, 40);
+		pntext.setLocation(47, 273);
+		pntext.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+		pntext.setForeground(Color.BLACK);
+		c.add(pntext);
+		pnumber.setSize(200, 30);
+		pnumber.setLocation(103, 280);
+		c.add(pnumber);
+
+		regist.setSize(130, 40);
+		regist.setLocation(125, 340);
+		regist.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+		regist.setBackground(Color.BLACK);
+		regist.setForeground(Color.WHITE);
+		regist.addActionListener(this);
+		c.add(regist);
+	}
+
+	public void actionPerformed(ActionEvent e) {
+		if (e.getSource() == regist) {
+			File memberfile = new File("memberfile.txt");
+			if (!memberfile.exists())
+				try {
+					memberfile.createNewFile();
+				} catch (IOException e2) {
+					e2.printStackTrace();
+				}
+			String idt = ID.getText();
+			if (idt.equals("")) {
+				JOptionPane.showMessageDialog(null, "ID를 입력하세요.", "오류", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			String pwt = PASSWORD.getText();
+			if (pwt.equals("")) {
+				JOptionPane.showMessageDialog(null, "PASSWORD를 입력하세요.", "오류", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			String pwct = PWcheck.getText();
+			if (!pwt.equals(pwct)) {
+				JOptionPane.showMessageDialog(null, "PASSWORD가 일치하지 않습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			String namet = name.getText();
+			if (namet.equals("")) {
+				JOptionPane.showMessageDialog(null, "이름을 입력하세요.", "오류", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			String pnt = pnumber.getText();
+			if (pnt.equals("")) {
+				JOptionPane.showMessageDialog(null, "전화번호를 입력하세요.", "오류", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+
+			// id 중복체크
+			BufferedReader reader = null;
+			try {
+				reader = new BufferedReader(new InputStreamReader(new FileInputStream(memberfile), "euc-kr"));
+			} catch (UnsupportedEncodingException | FileNotFoundException e1) {
+				// TODO 자동 생성된 catch 블록
+				e1.printStackTrace();
+			}
+			String str = null;
+			ArrayList<String> IDlist = new ArrayList<String>();
+			try {
+				while ((str = reader.readLine()) != null) {
+					StringTokenizer st = new StringTokenizer(str, " ");
+					String IDcheck = st.nextToken();
+					IDlist.add(IDcheck);
+				}
+			} catch (IOException e1) {
+				// TODO 자동 생성된 catch 블록
+				e1.printStackTrace();
+			}
+			for (int i = 0; i < IDlist.size(); i++) {
+				if (IDlist.get(i).equals(idt) || idt.equals("manager")) {
+					JOptionPane.showMessageDialog(null, "이미 존재하는 ID 입니다.", "오류", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+			}
+			try {
+				reader.close();
+			} catch (IOException e2) {
+				// TODO 자동 생성된 catch 블록
+				e2.printStackTrace();
+			}
+
+			try {
+				BufferedWriter bw = new BufferedWriter(new FileWriter(memberfile, true));
+				bw.write(idt);
+				bw.write(" ");
+				try {
+					bw.write(LOGIN.hashing(pwt));
+				} catch (NoSuchAlgorithmException e1) {
+					e1.printStackTrace();
+				}
+				bw.write(" ");
+				bw.write(namet);
+				bw.write(" ");
+				bw.write(pnt);
+				bw.write(" ");
+				bw.newLine();
+				bw.close();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+			JOptionPane.showMessageDialog(null, "회원가입 되셨습니다!");
+			dispose();
+		}
+	}
+}
+
+class USERMAIN extends JFrame implements ActionListener {
+	private String UID;
+	private JLabel title = new JLabel("Stay Calm");
+	private JButton logout = new JButton("로그아웃");
+	private JButton makeRecord = new JButton("기록 저장");
+	private JButton start = new JButton("요가 시작하기");
+	private JButton checkRecord = new JButton("기록 조회");
+
+	public USERMAIN(String UID) throws IOException {
+		this.UID = UID;
+		System.out.println("USERMAIN의 UID : " + UID);
+
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+		setTitle("StayCalm");
+		setLocation(400, 0);
+		setSize(500, 650);
+		setVisible(true);
+
+		Container c = getContentPane();
+		c.setLayout(null);
+		c.setBackground(Color.WHITE);
+
+		title.setSize(1000, 1000);
+		title.setLocation(100, -400);
+		title.setFont(new Font("맑은 고딕", Font.BOLD, 60));
+		title.setForeground(Color.BLACK);
+		c.add(title);
+
+		logout.setSize(80, 30);
+		logout.setLocation(360, 560);
+		logout.setFont(new Font("맑은 고딕", Font.BOLD, 11));
+		logout.setBackground(Color.WHITE);
+		logout.setForeground(Color.BLACK);
+		logout.addActionListener(this);
+		c.add(logout);
+
+		start.setSize(130, 180);
+		start.setLocation(100, 220);
+		start.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+		start.setBackground(Color.WHITE);
+		start.setForeground(Color.BLACK);
+		start.addActionListener(this);
+		c.add(start);
+
+		makeRecord.setSize(130, 80);
+		makeRecord.setLocation(250, 220);
+		makeRecord.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+		makeRecord.setBackground(Color.WHITE);
+		makeRecord.setForeground(Color.BLACK);
+		makeRecord.addActionListener(this);
+		c.add(makeRecord);
+
+		checkRecord.setSize(130, 80);
+		checkRecord.setLocation(250, 320);
+		checkRecord.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+		checkRecord.setBackground(Color.WHITE);
+		checkRecord.setForeground(Color.BLACK);
+		checkRecord.addActionListener(this);
+		c.add(checkRecord);
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+		if (e.getSource() == logout) { // 로그아웃 버튼
+			int response = JOptionPane.showConfirmDialog(null, "로그아웃 하시겠습니까?", "확인", JOptionPane.YES_NO_OPTION);
+			if (response == JOptionPane.YES_OPTION) {
+				new LOGIN();
+				dispose();
+			}
+		} else if (e.getSource() == start) // 회원가입 버튼
+		{
+			new YOGAPOSE(UID);
+			dispose();
+		}
+	}
+}
+
+class YOGAPOSE extends JFrame implements ActionListener { // 사용자 메인 프레임
+	private String UID;
+	private JButton back = new JButton("<-");
+	private JButton level = new JButton("수준별 동작 추천");
+	private JButton part = new JButton("부위별 동작 추천");
+	private JList<String> pose;
+
+	public YOGAPOSE(String UID) {
+		this.UID = UID;
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setTitle("StayCalm");
+		setLocation(400, 0);
+		setSize(500, 650);
+		setVisible(true);
+
+		Container c = getContentPane();
+		c.setLayout(null);
+		c.setBackground(Color.WHITE);
+
+		back.setSize(60, 40);
+		back.setLocation(0, 0);
+		back.setFont(new Font("맑은 고딕", Font.BOLD, 15));
+		back.setBackground(Color.BLACK);
+		back.setForeground(Color.WHITE);
+		back.addActionListener(this);
+		c.add(back);
+
+		level.setSize(130, 80);
+		level.setLocation(100, 50);
+		level.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+		level.setBackground(Color.WHITE);
+		level.setForeground(Color.BLACK);
+		level.addActionListener(this);
+		c.add(level);
+
+		part.setSize(130, 80);
+		part.setLocation(250, 50);
+		part.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+		part.setBackground(Color.WHITE);
+		part.setForeground(Color.BLACK);
+		part.addActionListener(this);
+		c.add(part);
+
+		JPanel p = new JPanel();
+		p.setLayout(new BorderLayout());
+		p.setBackground(Color.WHITE);
+		p.setSize(250, 350);
+		p.setLocation(10, 180);
+		c.add(p);
+
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if (e.getSource() == back) // 회원가입 버튼
+		{
+			try {
+				new USERMAIN(UID);
+				dispose();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
+	}
+}
